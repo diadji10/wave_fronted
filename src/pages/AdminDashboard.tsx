@@ -19,26 +19,43 @@ const AdminDashboard = () => {
     // Fetch initial sessions
     fetchSessions();
 
-    // Connect to WebSocket
-    const newSocket = io('http://localhost:3001');
-    newSocket.emit('join_admin');
-    
-    newSocket.on('session_update', (data) => {
-      console.log('Received session update:', data);
-      // Reload all sessions from database to ensure data persistence
-      fetchSessions();
-    });
+    // Connect to WebSocket with error handling
+    try {
+      const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+      
+      newSocket.on('connect', () => {
+        console.log('WebSocket connected');
+        newSocket.emit('join_admin');
+      });
+      
+      newSocket.on('connect_error', (error) => {
+        console.error('WebSocket connection error:', error);
+      });
+      
+      newSocket.on('session_update', (data) => {
+        console.log('Received session update:', data);
+        // Reload all sessions from database to ensure data persistence
+        fetchSessions();
+      });
 
-    setSocket(newSocket);
+      setSocket(newSocket);
 
-    return () => {
-      newSocket.disconnect();
-    };
+      return () => {
+        newSocket.disconnect();
+      };
+    } catch (error) {
+      console.error('Error setting up WebSocket:', error);
+    }
   }, []);
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/sessions');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/sessions`);
       const data = await response.json();
       setSessions(data);
     } catch (error) {
@@ -48,7 +65,7 @@ const AdminDashboard = () => {
 
   const generateSessionLink = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/session', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/session`, {
         method: 'POST',
       });
       const data = await response.json();

